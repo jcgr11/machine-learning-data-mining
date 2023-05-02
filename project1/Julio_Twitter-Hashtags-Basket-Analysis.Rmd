@@ -1,0 +1,85 @@
+---
+output:
+  html_document: default 
+  pdf_document: default
+---
+
+---
+title:  'Twitter Hashtags Basket Analysis'
+author:
+- Julio Garcia Rengifo
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output: pdf_document
+---
+
+### Problem
+The aim of this project is to detect patterns of the use of hashtags associated with LLBean on Twitter. The findings of this analysis are expected to provide some, meaningful, strong and interesting evidences to support the company's better decisions on social media marketing strategy. 
+
+### Data
+```{r message=FALSE, warning=FALSE}
+# import data
+library(readr)
+LLBean_hashtags <- read_csv("LLBean_hashtags.csv")
+head(LLBean_hashtags)
+nrow(LLBean_hashtags)
+
+# wrangle data
+library(dplyr)
+library(splitstackshape)
+LLBean<-LLBean_hashtags%>%filter(language == c('en'))%>%
+        mutate(hashtags = gsub("\\[|\\]|'", "", hashtags))%>% 
+        cSplit("hashtags", ",")
+head(LLBean)
+LLBean_assoc<-LLBean%>%filter(hashtags_01!=" ")%>%select(-c(language))
+head(LLBean_assoc)
+ncol(LLBean_assoc)
+nrow(LLBean_assoc)
+write.csv(LLBean_assoc, "LLBean_assoc.csv")
+```
+
+### Analysis 
+```{r message=FALSE, warning=FALSE, results='hide'}
+library(arules)
+# read the dataset "LLBean_assoc" of baskets database format 
+LLBean_tr<-read.transactions("LLBean_assoc.csv", header=TRUE, format='basket', sep=',', rm.duplicates = TRUE)
+inspect(LLBean_tr[1:5])
+```
+
+*Problem 3: Complete the following R commands to conduct a association rule learning analysis.*
+```{r message=FALSE, warning=FALSE, results='hide'}
+# generate association rules with minimum support of 0.1
+# and minimum confidence of 0.5. Also, all the rules must have the hashtag "llbean" appearing
+# on the right-hand side.
+llbean.rhs.rules<-apriori(LLBean_tr,
+                          parameter = list(support = 0.1,
+                                           confidence = 0.5),
+                          appearance = list(default = "lhs",
+                                            rhs = "llbean"))
+
+x <- inspect(llbean.rhs.rules)
+
+top_3_rules_list <- x[order(-(x$"support" + x$"confidence" + x$"lift")),]
+
+confidence_less_than_one <- top_3_rules_list[top_3_rules_list$"confidence"!=1,]
+  
+confidence_less_than_one
+```
+
+```{r message=FALSE, warning=FALSE}
+# create a scatter plot showing all the learned rules in terms of support, confidence, and lift.
+library(arulesViz)
+plot(llbean.rhs.rules,
+     main= "Scatter Plot for 16 rules")
+```
+
+*overall strength (based on confidence) and interestingness (based on lift) of the learned rules*
+
+**Overall strength and interestingness both seem to be evenly distributed across all rules are fairly uniform across the board leading to highly concentrated scatter plot. In terms of support, each of the 16 rules appear similarly frequently across the dataset. In terms of lift, all rules tell us that the items or piece of data on either side of the rules in each of the rules are positively correlated with each other (within each rule) in turn telling us that they occuring frequently together, which makes sense after observing the leftside of each rule and considering the rhs variable is llbean who's a very popular retailer and primarily sells apparel. The one outlier on the scatter plot is rule one which is trival, the lhs is empty and the outputs are not useful for our analysis because it essentially means {llbean} => {llbean}**
+
+```{r message=FALSE, warning=FALSE}
+# create a interactive network diagram showing all the generated rules.
+set.seed(2020)
+plot(llbean.rhs.rules, method="graph", engine = "htmlwidget")
+```
+
+**since lift across all rules is essentially the same, I used support and confidence as my key observations for selecting my rules, with confidence less than 1. Based on what I think were the highest combinations of confidence and support the three most meaningful rules are: 11, 6, and 9 in that order.)**

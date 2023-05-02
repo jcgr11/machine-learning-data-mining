@@ -1,0 +1,203 @@
+---
+output:
+  html_document: default 
+  pdf_document: default
+---
+
+---
+title:  'Twitter Text Mining'
+subtitle: 'UMaine BUA684 Module 4'
+author:
+- FirstName LastName
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output: pdf_document
+---
+# Problem
+The aim of this assignment is to, through text mining, develop better understanding of information dissemination about LLBean and its products on Twitter. This task is expected to provide value information to support decision makings on social media marketing.
+
+
+# Data
+## Step 1: Data Collection and Retrieval 
+```{r message=FALSE, warning=FALSE, results='hide'}
+# install and load all the needed R packages
+# install.packages(c("tidyverse", "tidytext", "wordcloud", "igraph","ggraph", "tidygraph"), repos='http://cran.us.r-project.org')
+library(igraph) 
+library(ggraph)
+library(tidyverse)
+library(tidytext)
+library(wordcloud)
+library(igraph) 
+library(ggraph)
+library(tidygraph)
+```
+
+```{r message=FALSE, warning=FALSE}
+# import the Twitter data
+LLBean_complete<-read_csv("https://filedn.com/lJpzjOtA91quQEpwdrgCvcy/Business%20Data%20Mining%20and%20Knowledge%20Discovery/Datasets/LLBean.csv")
+LLBean_complete<-LLBean_complete %>% filter(language=="en") %>% select(-language)
+```
+
+In below, Please write all "your answers" in **Bold** font.
+
+*Problem 1: In the following chunk, use a simple R command to count the total number of Tweet messages contained in the LLBean dataset*
+```{r message=FALSE, warning=FALSE}
+tweet_count<- nrow(LLBean_complete)
+print(tweet_count)
+```
+
+
+**Because this Twitter data is too big to be processed on RStudio Cloud, we randomly select a small subset and continue our assignment with the subset**
+
+```{r message=FALSE, warning=FALSE}
+LLBean<-LLBean_complete %>% sample_n(10000)
+```
+
+
+## Step 2: Cleaning and Parsing  
+### Text Cleaning
+```{r message=FALSE, warning=FALSE}
+LLBean$tweet_clean <- iconv(LLBean$tweet, from="UTF-8", to="ASCII", sub="") 
+LLBean$tweet_clean <-  gsub("https\\S*", "", LLBean$tweet_clean)
+LLBean$tweet_clean <-  gsub("?\\$\\w+ ?", "", LLBean$tweet_clean)
+LLBean$tweet_clean <-  gsub("?\\#\\w+ ?", "", LLBean$tweet_clean)
+LLBean$tweet_clean <-  gsub("?\\@\\w+ ?", "", LLBean$tweet_clean)
+LLBean$tweet_clean <-  gsub("amp", "", LLBean$tweet_clean) 
+LLBean$tweet_clean <-  gsub("[\r\n]", "", LLBean$tweet_clean)
+LLBean$tweet_clean <-  gsub("[[:punct:]]", "", LLBean$tweet_clean)
+LLBean$tweet_clean <-  gsub('[[:digit:]]+', "", LLBean$tweet_clean)
+LLBean$tweet_clean <-  gsub("(RT|via)((?:\\b\\w*@\\w+)+)","", LLBean$tweet_clean)
+LLBean$tweet_clean <- trimws(gsub("\\s+", " ", LLBean$tweet_clean))
+```
+
+
+*Problem 2: Open the "LLBean" dataset in the "Environment" panel (click the Data name in the panel) to compare the column "tweet" with the column "tweet_clean" and then summarize how the above R code clean the tweet messages?**
+
+**Your answer:(First the iconv() function is used to convert data stored in the tweet column from UTF-8 to ASCII and any characters that cannot be encoded as the ASCII format will be replaced with and empty space using the " " in the sub argument, it also creates a new column "tweet_clean" to store the output. the following lines of code use the gsub() function to replace the given character strings with an empty space, the gsub function's first argument in each line uses a regex as the first argument, then the replacement, "",  as the second argument and then the column to search and replace text using the patterns. The first gets rid of any https\ followed by anything that is not whitespace, the second removes the dollar sign, third removes hashtag, the fourth removes the at symbol, the fifth removes any instance of "amp", the next removes any newlines to show text as a single line in each record, next removes any digits, the next removes an trwitter handles, The last line of code uses a combination of trimw() and gsub() functions to find all back to back white space and replace with a single white. )**
+
+### Text Parsing (creating the tidy data)
+```{r message=FALSE, warning=FALSE}
+LLBean_tibble <- tibble(line = 1:nrow(LLBean), text = LLBean$tweet_clean)
+LLBean_tibble
+
+LLBean_tidy<-LLBean_tibble%>%unnest_tokens(word, text)
+LLBean_tidy
+```
+
+# Analysis
+## Step 3: Data Analysis and Information Learning
+### Word Clouds
+```{r message=FALSE, warning=FALSE}
+# remove all the stop words
+words_count<-LLBean_tidy %>%  count(word, sort = TRUE) %>% filter(!word %in% stop_words$word) %>% 
+                                                           filter(!word %in% c("llbean", "bean", "im", "ll", "check", "size", "items")) 
+# we are also not interested in some additional terms because they are highly frequent words but conveying less valuable information in the word cloud.
+```
+
+```{r message=FALSE, warning=FALSE}
+# find 99% percentile of the words_count frequency and create the network visualization only for the top 1% most frequent terms.
+q99<-as.integer(quantile(words_count$n, 0.99))
+words_count %>% with(wordcloud(word, n, min.freq=q99, random.order=FALSE,  
+                 colors=rev(colorRampPalette(brewer.pal(9,"Set1"))(32)[seq(8,32,6)])))
+```
+
+*Problem 3: What valuable information can you learn from this word cloud?*
+
+**Your answer: (With the 3 largest words being share love and boots, with some second level words like maine, mens, womens. My interpretation of the word cloud is that LLBean's boots are very popular among both men and women in the maine market. The term love shows a strong appeal to the LLBean products as well. LLBean is a company that provides clothing for both the winter and summer seasons with different types of clothing items that are mentioned. It is likely that this word cloud shows that people in Maine love LLBean!)**
+
+
+### Bi-grams Analysis 
+```{r message=FALSE, warning=FALSE}
+LLBean_bigrams<-LLBean_tibble%>%unnest_tokens(bigram, text, token = "ngrams", n = 2)
+
+# separate each pair of two terms into two columns term1 and term2
+LLBean_separated <- LLBean_bigrams %>% separate(bigram, c("term1", "term2"), sep = " ")
+# remove stop words and one additional word from term1 and term2 columns
+LLBean_filtered <- LLBean_separated %>% filter(!term1 %in% stop_words$word) %>%
+                                        filter(!term2 %in% stop_words$word) %>%
+                                        filter(!term1 %in% c("size")) %>%
+                                        filter(!term2 %in% c("size")) 
+```
+
+### Term Association
+```{r message=FALSE, warning=FALSE}
+# find the second terms most frequently following “llbean”
+LLBean_filtered  %>%  filter(term1 == "llbean") %>% count(term2, sort = TRUE)
+```
+
+*Problem 4: What valuable information can you learn from the term associations summarized above?*
+
+**Your answer: (LLbean's most popular products are its boots and backpacks, showing opportunities to expand its marketing to drive sale of other products that may appeal to men and women in maine. it is possible that the brand is also more popular among men. You can also get an idea of how popular each type of product is on social media and will likely see that revenue from each product is likely equivalently ranked.)**
+
+```{r message=FALSE, warning=FALSE}
+# find the first terms most frequently followed by “llbean”
+LLBean_filtered  %>%  filter(term2 == "llbean") %>% count(term1, sort = TRUE)
+```
+
+*Problem 5: What valuable information can you learn from the term associations summarized above?*
+
+**Your answer: (there is potentially frequent reselling of LLbean products on poshmark, and there may be concern for customers boycotting the brand, likely having to do with trump tweets when considering the trump appears as a third tier word in the word cloud)**
+
+### Semantic Network Analysis
+```{r message=FALSE, warning=FALSE}
+# we further filter out "llbean" since it is well expected to be a major hub but does not convery very valuable information
+LLBean_filtered_SNA<-LLBean_filtered  %>% filter(!term1 %in% c("llbean", "ll", "bean")) %>%
+                                         filter(!term2 %in% c("llbean", "ll", "bean")) 
+LLBean_filtered_SNA_count<-LLBean_filtered_SNA  %>%  count(term1, term2, sort = TRUE)
+```
+
+#### Automated Network Creation
+```{r message=FALSE, warning=FALSE}
+# find 99% percentile of the bigrams frequency and create the network visualization only for the top 1% most frequent bigrams.
+q99<-as.integer(quantile(LLBean_filtered_SNA_count$n, 0.99))
+LLBean_filtered_SNA_count_top<-LLBean_filtered_SNA_count %>% filter(n > q99)
+nrow(LLBean_filtered_SNA_count_top)
+```
+
+```{r message=FALSE, warning=FALSE, fig.width = 14, fig.height = 14}
+set.seed(2023)
+# this function normalize any scale into a scale of 0 to 1
+normalize <- function (x, from = range(x), to = c(0, 1)) {
+  x <- (x - from[1])/(from[2] - from[1])
+  if (!identical(to, c(0, 1))) {
+    x <- x * (to[2] - to[1]) + to[1]
+  }
+  x
+}
+
+# create the graph for top bigrams and add popularity of node
+bigram_graph <- as_tbl_graph(LLBean_filtered_SNA_count_top) %>% 
+    # calculate pagerank centrality score as the popularity
+    mutate(Popularity = centrality_pagerank()) 
+  
+
+# normalize the popularity value for better visualization effect
+V(bigram_graph)$Popularity <- normalize(V(bigram_graph)$Popularity, to = c(1, 8))
+
+# create semantic network visualization 
+ggraph(bigram_graph, "fr") +
+  geom_edge_link(
+    aes(end_cap = circle(node2.Popularity + 2, "pt")),
+    edge_colour = "gray", 
+    arrow = arrow(
+    angle = 10,
+    length = unit(0.1, "inches"),
+    ends = "last",
+    type = "closed")
+  ) +
+  geom_node_point(
+    aes(size= I(Popularity), alpha=Popularity),
+    col = "red",
+    show.legend = FALSE
+  ) +geom_node_text(aes(label = name))+
+  theme_graph()
+```
+
+#### Semantic Analysis
+*Problem 6: What valuable information can you learn from the semantic network created above?* (**after knitting the file to a html file, set the browser zoom level to 200% or even higher for better visibility**) 
+
+**Hint:** *Which nodes are the top hubs based on their PageRank score. Then, how are these top hubs connected with one another through some interesting paths passing through several other nodes? Also, are there other interesting paths passing through some nodes in this network?* 
+
+**Your answer:( The top hubs in the semantic network based on their pagerank score are bad, shower, caddy, black, mens, shirt all of which have relatively equal importance. second to those are black and shirt. Black shower and caddy show that this particular product has consistently negative references in the original twitter data presenting a potential improvement or change in the product. For Mens and shirt the terms mens shirt and shirt mens show u regularly in those relationships with a common relationship to the text XL and Sweater, this shows us that mens XL shirts and sweaters are likely a high volume products for LLBean and may present an opportunity to adjust the organizations marketing strategy to improve the frequency of mention of other products on social media to drive sales and in turn improve revenue.   )**
+
+# Discussion
+*Reflect on the ways in which the text mining results could contribute to the development of an enhanced social media marketing strategy for the company. Although this analysis won't be detailed here, you will have the opportunity to collaborate with your project team, allowing you to work together with your teammates to further examine this aspect and devise comprehensive marketing approaches.* 

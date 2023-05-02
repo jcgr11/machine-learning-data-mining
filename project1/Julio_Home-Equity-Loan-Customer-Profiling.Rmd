@@ -1,0 +1,91 @@
+---
+output:
+  html_document: default 
+  pdf_document: default
+---
+
+---
+title:  'Home Equity Loan Customer Profiling'
+subtitle: 'K-Means Clustering'
+author:
+- Julio Garcia Rengifo
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output: pdf_document
+---
+
+### Problem
+The aim of this project is to, through a K-means clustering analysis, create portraits of a large group of home equity loan customers in one bank by divide the customers into different segments based on their financial and career data. Such customer profiling is expected to provide senior management of the bank with a better understanding of different distinct features of different customer segments.
+
+
+### Data
+```{r message=FALSE, warning=FALSE}
+# import data
+library(readr)
+hmeq_profile <- read_csv("hmeq_profile.csv")
+head(hmeq_profile)
+ncol(hmeq_profile)
+nrow(hmeq_profile)
+```
+
+
+```{r message=FALSE, warning=FALSE}
+# wrangle data
+# standardize selected attributes in this dataset
+library(dplyr)
+hmeq_profile.std<-hmeq_profile %>% mutate_at(vars(-REASON, -JOB, -DEROG, -DELINQ, -NINQ), scale)
+head(hmeq_profile.std)
+
+# create the scatterplot matrix showing the relationships within different pairs of two
+# attributes.
+pairs(select(hmeq_profile.std, LOAN, MORTDUE, VALUE, YOJ, CLAGE, CLNO, DEBTINC), 
+      main = "Home Equity Loan Customer")
+# remove those records with DEBTINC>10 or CLAGE>10
+hmeq_profile.std.filtered<-hmeq_profile.std %>% filter(DEBTINC<10 & CLAGE<10)
+#check whether the records are removed.
+max(hmeq_profile.std.filtered$DEBTINC)
+max(hmeq_profile.std.filtered$CLAGE)
+```
+
+**We must standardize the selected attributes to ensure they are all of the same value scale**
+
+**Because Clage and Debtinc both have irregular outliers which fall above 10, much more than any of the values in the other datasets AND much more than any of the values within its respective dataset, if the records identified are not removed, then the clustering process will be impacted in a way that will provide misleading results.)**
+
+### Analysis
+```{r message=FALSE, warning=FALSE}
+# select optimal number of clusters
+library(factoextra)
+set.seed(2020)
+fviz_nbclust(select(hmeq_profile.std.filtered, LOAN, MORTDUE, VALUE, YOJ, CLAGE, CLNO, DEBTINC), 
+             kmeans, method = "wss")
+```
+
+```{r message=FALSE, warning=FALSE, error=FALSE}
+hmeq_profile.std.filtered.selected<-hmeq_profile.std.filtered%>%
+                                    select(LOAN, MORTDUE, VALUE, YOJ, CLAGE, CLNO, DEBTINC)
+set.seed(2020)
+hmeq_profile_kmeans <- kmeans(hmeq_profile.std.filtered.selected, centers =6) 
+hmeq_profile_kmeans$centers
+hmeq_profile_kmeans$size
+```
+
+*interesting features of some clusters produced from the analysis*
+
+**In cluster 1 around 380 clients "Clage" values are significantly higher these customers may be older, while all other attributes relatively comparable. Cluster 3 show 456 clients have relatively high loan values, mortgage payments, and property values this can be useful for marketing home equity loans because its seems that loan values are materially lower than property values for these clients, it also looks like the age attributes for cluster 3 shows that the age for this group is about half of cluster 1 (potentially). cluster 4 has the lowest debt to income ratios**
+
+```{r message=FALSE, warning=FALSE, error=FALSE}
+# read all cluster assignments into a vector called ClusterID
+ClusterID<-hmeq_profile_kmeans$cluster
+# merge data records in hmeq_profile.std.filtered with their ClusterID 
+hmeq_profile.std.filtered.K<-cbind(hmeq_profile.std.filtered, ClusterID)
+head(hmeq_profile.std.filtered.K)
+
+# the "janitor" package has some nice functions to creating table summary that
+# play nicely with the %>% pipe in dplyr
+library(janitor)
+hmeq_profile.std.filtered.K%>%
+  tabyl(ClusterID, REASON, JOB)
+```
+
+*interesting features of some clusters in terms of REASON and JOB*
+
+**The Profexe job title is much more evenly distributed across home improvement as the reason for using a home equity loan. Within that same category cluster 3, 5, and 6 have a much higher occurrence of debt consolidation being the reason for a home equity. The "other Job category seems to have highest number of individuals who are using the home equity loan for debt consolidation, but the category "other" can have so many different inputs and much more generic which may not give much utility to the debt consolidation attribution in cluster five for this job title. the sales category seem to be the least insightful across all clusters.**
