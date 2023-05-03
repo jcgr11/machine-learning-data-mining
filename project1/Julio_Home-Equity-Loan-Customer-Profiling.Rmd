@@ -1,7 +1,7 @@
 ---
 output:
-  pdf_document: default
   html_document: default 
+  pdf_document: default
 ---
 
 ---
@@ -21,7 +21,7 @@ The aim of this project is to, through a K-means clustering analysis, create por
 ```{r message=FALSE, warning=FALSE}
 # import data
 library(readr)
-hmeq_profile <- read_csv("hmeq_profile.csv")
+hmeq_profile <- read_csv("project1/hmeq_profile.csv")
 head(hmeq_profile)
 ncol(hmeq_profile)
 nrow(hmeq_profile)

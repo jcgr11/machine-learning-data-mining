@@ -6,7 +6,6 @@ output:
 
 ---
 title:  'Twitter Retweetability Analysis'
-subtitle: 'UMaine BUA684 Module 3'
 author:
 - Julio Rengifo
 date: "`r format(Sys.time(), '%d %B %Y')`"
@@ -14,7 +13,7 @@ output: pdf_document
 ---
 
 # Problem
-The aim of this assignment is to understand the relationship between retweetability of one tweet (whether the tweet is retweeted and, if it does, how many times it is retweeted) and some features of the tweet. 
+The aim of this project is to understand the relationship between retweetability of one tweet (whether the tweet is retweeted and, if it does, how many times it is retweeted) and some features of the tweet. 
 
 
 # Data
@@ -46,15 +45,8 @@ head(LLBean2)
 head(LLBean3)
 ```
 
-In below, Please write all your answers in **Bold** font.
-
-*Problem 1: Based on the data outputs `LLBean_retweet`, `LLBean1`, `LLBean2`, and `LLBean3`, describe how the above R code wrangles the data.* **(Note: Because the data is big, to have a complete view of the four datasets, you must also run the above code in Console not just in this R Notebook.)**
-
-**Your answer: (based on the code chunk above the LLBean_retweet reads the original .csv file into dataframe, the original dataframe which is assinged to the LLBean_retweet variable is then filtered using dplyr to include only tweets in English then mutated to remove square brackets from all hashtags and urls, these preprocessing methods are passed through the pip operator in sequential orde the resulting dataframe is stored to the LLBean 1 variable. The LLbean 2 variable sets up a count of how many many retweets and hastags are present and inserts the results as new attributes in the datframe, the url_ind attribute is added to provide a binary record of whether each record has a URL instance. The language column is then removed and the resulting dataframe is saved as LLBean2. The LLBean 3 variable further transforms LLBean 2 by filtering out only records that has a retweet instance.)**
-
 # Analysis
 ## Logistic regression model
-*Problem 2: In the following chunk, use the business case example for logistic model as reference to build a logistic regression model based on the dataset `LLBean2` to predict `retweet_ind` using `tweet_length`, `url_ind`, `hashtags_count`, and `video` as predictors. Show all your R code in the submission including that for addressing the multicollinearity problem. If the problem appears, you need to update your model to resolve the problem. Also, you should evaluate importance of different predictors in the model.*
 ```{r message=FALSE, warning=FALSE}
 install.packages("caret")
 library(caret)
@@ -75,32 +67,24 @@ varImp(LLBean2_lgr, scale = TRUE)
 
 ```
 
-*Problem 3: Based on your final model results for Problem 2, interpret the meaning of the regression coefficient estimate for the most important predictor.*
+**Based on my final model result it is apparent that video is the  the most significant predictor of retweet_ind (all else equal), with every one-unit increase in in video the log probability of retweet_ind increases by a factor of 1.36**
 
-**Your answer: (Based on my final model result it is apparent that video is the  the most significant predictor of retweet_ind (all else equal), with every one-unit increase in in video the log probability of retweet_ind increases by a factor of 1.36)**
-
-*Problem 4: In the following chunk, estimate the possible range of regression coefficient estimate for the most important predictor at 95% confidence level.*
 ```{r message=FALSE, warning=FALSE}
 confint(LLBean2_lgr, "video", level = 0.95)
 ```
 
-*Problem 5: Based on the result for Problem 4, interpret the generalized meaning of the regression coefficient estimate for the most important predictor.*
 
-**Your answer:  (Based on this model and the assumption of causality relationship between retweet_ind and other predictors in the logit regression, we predict with 95% confidence that for every one unit increase in video the odds of a retweet_ind outcome will increase by a possible value in the range between 133% to 139%.)**
+**Based on this model and the assumption of causality relationship between retweet_ind and other predictors in the logit regression, we predict with 95% confidence that for every one unit increase in video the odds of a retweet_ind outcome will increase by a possible value in the range between 133% to 139%.**
 
-*Problem 6: In the following chunk, measure performance of the logistic regression model you build. Show all your R code in the submission*
 ```{r message=FALSE, warning=FALSE}
 install.packages("DescTools")
 library(DescTools)
 Cstat(LLBean2_lgr)
 ```
 
-*Problem 7: According to the model performance measure in Problem 6, is this model a poor/average/good/strong model?*
-
-**Your answer: (Based on the Cstat of .673977 the performance of the model is average)**
+**Based on the Cstat of .673977 the performance of the model is average**
 
 ## Least-square regression model
-*Problem 8: In the following chunk, use the business case example for least-square model as reference to build a least-square regression model based on the dataset `LLBean3` to predict `retweets_count` using `tweet_length`, `url_ind`, `hashtags_count`, and `video` as predictors. Show all your R code in the submission including that for checking the assumptions for this type of regression model, detecting influential outliers, and addressing the multicollinearity problem. If the outlier problem and/or the multicollinearity problem appears, you need to update your model to resolve the problem(s). Also, you should evaluate importance of different predictors in the model.*
 ```{r message=FALSE, warning=FALSE}
 install.packages("gvlma")
 install.packages("car")
@@ -137,32 +121,21 @@ vif(LLBean3_lsr_new)
 varImp(LLBean3_lsr_new, scale = TRUE)
 ```
 
-*Problem 9: Is there some assumption(s) not satisfied by this dataset? If yes, what assumptions are not satisfied.*
+**global stat, skewness, kurtosis, and heteroscedasticity are not satisfied using an OLS regression model on this dataset**
 
-**Your answer: (Yes, global stat, skewness, kurtosis, and heteroscedasticity are not satisfied.)**
 
-*Problem 10: Based on your final model results for Problem 8, interpret the meaning of the regression coefficient estimate for the most important predictor.*
+**Based on my final model result it is apparent that video is the  the most significant predictor of retweet_ind (all else equal), with every one-unit increase in in video the log probability of retweet_ind increases by a factor of 1.716878**
 
-**Your answer: (Based on my final model result it is apparent that video is the  the most significant predictor of retweet_ind (all else equal), with every one-unit increase in in video the log probability of retweet_ind increases by a factor of 1.716878)**
-
-*Problem 11: In the following chunk, estimate the possible range of regression coefficient estimate for the most important predictor at 95% confidence level.*
 ```{r message=FALSE, warning=FALSE}
 confint(LLBean3_lsr_new, "video", level = 0.95)
 ```
 
-*Problem 12: Based on the result for Problem 11, interpret the generalized meaning of the regression coefficient estimate for the most important predictor.*
+**Based on this model and the assumption of causality relationship between retweet_ind and other predictors in the least squares regression, we predict with 95% confidence that for every one unit increase in video the odds of a retweet_ind outcome will increase by a possible value in the range between 154% to 189%.**
 
-**Your answer:(Based on this model and the assumption of causality relationship between retweet_ind and other predictors in the least squares regression, we predict with 95% confidence that for every one unit increase in video the odds of a retweet_ind outcome will increase by a possible value in the range between 154% to 189%.)**
-
-*Problem 13: In the following chunk, measure performance of the least-square regression model you build. Show all your R code in the submission*
 ```{r message=FALSE, warning=FALSE}
 summary(LLBean3_lsr_new)$adj.r.squared
 ```
 
-*Problem 14: According to the model performance measure in Problem 12, do you think this model a good model?*
 
-**Your answer:(I do not think that the model is a good model, it may be inappropriate for the dataset being observed. the adjusted R-squared tells me that the model explains an insignificant amount of variation in the response variable.)**
-
-# Discussion
-*Reflect on the ways in which the logistic and least-square regression model results could contribute to the development of an enhanced social media marketing strategy for the company. Although this analysis won't be detailed here, you will have the opportunity to collaborate with your project team, allowing you to work together with your teammates to further examine this aspect and devise comprehensive marketing approaches*  
+**I do not think that the model is a good model, it may be inappropriate for the dataset being observed. the adjusted R-squared tells me that the model explains an insignificant amount of variation in the response variable.**
 

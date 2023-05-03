@@ -14,9 +14,11 @@ output: pdf_document
 
 ```{r message=FALSE, warning=FALSE}
 # install.packages("Rcpp")
+install.packages("tinytex")
 ```
 
 # Problem
+
 The aim of this Project is to, through decision tree model and logistic regression model, complete two common practices in credit risk management which are *customer pre-screening* and *customer scoring*. The two tasks are expected to provide value information to support decision makings at the levels of operative management and middle management.
 
 # Data
@@ -57,6 +59,7 @@ table(test$BAD)/nrow(test)
 ```
 
 # Analysis
+
 ## Decision tree model (customer pre-screening)
 
 ```{r message=FALSE, warning=FALSE}
@@ -131,6 +134,7 @@ imp[order(imp$overall,
 **Based on the importance scores the top 5 values important predictors for predicting BAD are DEBTINC, DELINQ, DEROG, CLAGE, VALUE.**
 
 ## Logistic regression model (customer scoring)
+
 ```{r message=FALSE, warning=FALSE}
 install.packages("car")
 library(car)
@@ -148,12 +152,13 @@ varImp(hmeq_lgr, scale = TRUE)
 
 ```
 
-**Based on my final model result it is apparent that DELINQ is the  the most significant predictor of BAD (all else equal), with every one-unit increase in in DELINQ the log probability of BAD increases by .6632)**
+**Based on my final model result it is apparent that DELINQ is the the most significant predictor of BAD (all else equal), with every one-unit increase in in DELINQ the log probability of BAD increases by .6632)**
 
 ```{r message=FALSE, warning=FALSE}
 confint(hmeq_lgr, "DELINQ", level = 0.95)
 ```
-**Based on this model and the assumption of causality relationship between BAD and other predictors in the logit regression, we predict with 95% confidence that for every one unit increase in DELINQ the odds of a BAD outcome will increase by a possible value in the range between 54% to 79%. **
+
+**Based on this model and the assumption of causality relationship between BAD and other predictors in the logit regression, we predict with 95% confidence that for every one unit increase in DELINQ the odds of a BAD outcome will increase by a possible value in the range between 54% to 79%.**
 
 ```{r message=FALSE, warning=FALSE}
 install.packages("DescTools")

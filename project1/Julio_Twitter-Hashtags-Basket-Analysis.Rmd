@@ -1,8 +1,8 @@
 ---
 output:
+  pdf_document: default
   word_document: default
   html_document: default
-  pdf_document: default
 ---
 
 ---
@@ -46,7 +46,6 @@ LLBean_tr<-read.transactions("LLBean_assoc.csv", header=TRUE, format='basket', s
 inspect(LLBean_tr[1:5])
 ```
 
-*Problem 3: Complete the following R commands to conduct a association rule learning analysis.*
 ```{r message=FALSE, warning=FALSE, results='hide'}
 # generate association rules with minimum support of 0.1
 # and minimum confidence of 0.5. Also, all the rules must have the hashtag "llbean" appearing
@@ -66,14 +65,13 @@ confidence_less_than_one <- top_3_rules_list[top_3_rules_list$"confidence"!=1,]
 confidence_less_than_one
 ```
 
+*overall strength (based on confidence) and interestingness (based on lift) of the learned rules*
 ```{r message=FALSE, warning=FALSE}
 # create a scatter plot showing all the learned rules in terms of support, confidence, and lift.
 library(arulesViz)
 plot(llbean.rhs.rules,
      main= "Scatter Plot for 16 rules")
 ```
-
-*overall strength (based on confidence) and interestingness (based on lift) of the learned rules*
 
 **Overall strength and interestingness both seem to be evenly distributed across all rules are fairly uniform across the board leading to highly concentrated scatter plot. In terms of support, each of the 16 rules appear similarly frequently across the dataset. In terms of lift, all rules tell us that the items or piece of data on either side of the rules in each of the rules are positively correlated with each other (within each rule) in turn telling us that they occuring frequently together, which makes sense after observing the leftside of each rule and considering the rhs variable is llbean who's a very popular retailer and primarily sells apparel. The one outlier on the scatter plot is rule one which is trival, the lhs is empty and the outputs are not useful for our analysis because it essentially means {llbean} => {llbean}**
 
